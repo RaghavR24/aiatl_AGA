@@ -65,22 +65,28 @@ export const transcriptionRouter = createTRPCRouter({
 
         let fileToTranscribe = tempFilePath;
 
-        // Attempt to convert to WAV if the format is not directly supported
-        if (!['wav', 'mp3', 'm4a'].includes(fileExtension.slice(1))) {
+        // Check if the file extension is directly supported by Whisper
+        const supportedExtensions = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'];
+        const currentExtension = path.extname(fileToTranscribe).slice(1);
+
+        console.log("Current file extension:", currentExtension);
+
+        if (!supportedExtensions.includes(currentExtension)) {
+          console.log("File format not directly supported. Attempting conversion to WAV...");
           try {
-            const wavFilePath = tempFilePath.replace(fileExtension, '.wav');
+            const wavFilePath = tempFilePath.replace(path.extname(tempFilePath), '.wav');
             await execPromise(`ffmpeg -i ${tempFilePath} ${wavFilePath}`);
             fileToTranscribe = wavFilePath;
+            console.log("Conversion successful. New file path:", fileToTranscribe);
           } catch (conversionError) {
-            console.warn("FFmpeg conversion failed, proceeding with original file:", conversionError);
-            // Continue with the original file if conversion fails
+            console.error("FFmpeg conversion failed:", conversionError);
+            throw new Error("Unable to convert file to a supported format");
           }
         }
 
-        console.log("MIME type:", input.mimeType);
-        console.log("File extension:", fileExtension);
-        console.log("Temp file path:", tempFilePath);
-        console.log("File to transcribe:", fileToTranscribe);
+        // Create and check the file stream
+        const fileStream = createReadStream(fileToTranscribe);
+        console.log("File stream created for:", fileToTranscribe);
 
         // Log file information
         const fileStats = await fs.promises.stat(fileToTranscribe);
@@ -89,23 +95,9 @@ export const transcriptionRouter = createTRPCRouter({
         // Check file type using file command
         try {
           const { stdout } = await execPromise(`file -b --mime-type ${fileToTranscribe}`);
-          console.log("Detected file type:", stdout.trim());
+          console.log("Detected MIME type:", stdout.trim());
         } catch (error) {
           console.error("Error detecting file type:", error);
-        }
-
-        // Create and check the file stream
-        const fileStream = createReadStream(fileToTranscribe);
-        console.log("File stream created");
-        console.log("File stream:", fileStream);
-
-        console.log("Type of fileStream:", typeof fileStream);
-        console.log("Is fileStream instanceof Readable:", fileStream instanceof Readable);
-
-        if (fileStream instanceof Readable) {
-          console.log("File stream is readable");
-        } else {
-          console.log("File stream is not readable");
         }
 
         try {
@@ -118,6 +110,7 @@ export const transcriptionRouter = createTRPCRouter({
           return { text: transcription.text };
         } catch (error) {
           console.error("Error during transcription:", error);
+          console.error("Error details:", JSON.stringify(error, null, 2));
           throw error;
         } finally {
           // Clean up the temporary files
