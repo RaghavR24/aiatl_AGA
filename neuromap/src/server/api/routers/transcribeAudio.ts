@@ -15,7 +15,7 @@ export const transcriptionRouter = createTRPCRouter({
   transcribeAudio: protectedProcedure
     .input(z.object({
       audio: z.string(),
-      mimeType: z.string()
+      mimeType: z.string().optional()
     }))
     .mutation(async ({ input, ctx }) => {
       console.log("transcribeAudio mutation called");
@@ -36,7 +36,7 @@ export const transcriptionRouter = createTRPCRouter({
 
         // Determine file extension based on MIME type
         let fileExtension = '.webm';
-        if (input.mimeType.includes('audio/mp4')) {
+        if (input.mimeType?.includes('audio/mp4')) {
           fileExtension = '.m4a';
         }
 
