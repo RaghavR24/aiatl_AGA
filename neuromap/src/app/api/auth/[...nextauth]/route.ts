@@ -12,7 +12,7 @@ declare module "next-auth" {
   }
 }
 
-const handler: AuthOptions = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -98,6 +98,8 @@ const handler: AuthOptions = NextAuth({
       return session;
     },
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
