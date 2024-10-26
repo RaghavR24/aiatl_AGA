@@ -15,7 +15,7 @@ type SavedTodoItem = {
   isSubtask: boolean;
   createdAt: Date;
   updatedAt: Date;
-  subtasks: SavedTodoItem[];
+  subtasks: Omit<SavedTodoItem, 'subtasks'>[];
 };
 
 async function saveTodosToDatabase(todos: TodoItem[], userId: string): Promise<SavedTodoItem[]> {
@@ -50,7 +50,7 @@ async function saveTodosToDatabase(todos: TodoItem[], userId: string): Promise<S
           subtasks: true,
         },
       });
-      savedTodos.push(savedTodo as SavedTodoItem);
+      savedTodos.push(savedTodo as unknown as SavedTodoItem);
     } catch (error) {
       console.error('Error saving todo:', error);
       if (error instanceof Error) {
