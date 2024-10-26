@@ -50,7 +50,7 @@ const MindMapGraph: React.FC<MindMapGraphProps> = ({ nodes, edges }) => {
 
       // Apply force adjustments
       fgRef.current.d3Force('charge', d3.forceManyBody().strength(-5));
-      fgRef.current.d3Force('center', d3.forceCenter(0, 0, 0));
+      fgRef.current.d3Force('center', d3.forceCenter(0, 0));
       fgRef.current.d3Force('link').distance(50);
     }
   }, []);
