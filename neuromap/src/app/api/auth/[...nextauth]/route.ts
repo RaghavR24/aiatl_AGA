@@ -14,56 +14,36 @@ const handler = NextAuth({
   adapter: PrismaAdapter(db),
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        const existingUser = await db.user.findUnique({
-          where: { email: user.email! },
-          include: { accounts: true },
-        });
+      try {
+        if (account?.provider === "google") {
+          const existingUser = await db.user.findUnique({
+            where: { email: user.email! },
+            include: { accounts: true },
+          });
 
-        if (existingUser) {
-          // Check if the user has a linked Google account
-          const linkedAccount = existingUser.accounts.find(
-            (acc: { provider: string }) => acc.provider === "google"
-          );
+          if (existingUser) {
+            // Check if the user has a linked Google account
+            const linkedAccount = existingUser.accounts.find(
+              (acc: { provider: string }) => acc.provider === "google"
+            );
 
-          if (linkedAccount) {
-            // Update the existing Google account with new tokens
-            await db.account.update({
-              where: { id: linkedAccount.id },
-              data: {
-                access_token: account.access_token,
-                expires_at: account.expires_at,
-                refresh_token: account.refresh_token,
-                id_token: account.id_token,
-                session_state: account.session_state,
-              },
-            });
-          } else {
-            // If no linked Google account, create a new one
-            await db.account.create({
-              data: {
-                userId: existingUser.id,
-                type: account.type,
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                refresh_token: account.refresh_token,
-                access_token: account.access_token,
-                expires_at: account.expires_at,
-                token_type: account.token_type,
-                scope: account.scope,
-                id_token: account.id_token,
-                session_state: account.session_state,
-              },
-            });
-          }
-        } else {
-          // If the user doesn't exist, create a new user
-          await db.user.create({
-            data: {
-              name: user.name,
-              email: user.email!,
-              accounts: {
-                create: {
+            if (linkedAccount) {
+              // Update the existing Google account with new tokens
+              await db.account.update({
+                where: { id: linkedAccount.id },
+                data: {
+                  access_token: account.access_token,
+                  expires_at: account.expires_at,
+                  refresh_token: account.refresh_token,
+                  id_token: account.id_token,
+                  session_state: account.session_state,
+                },
+              });
+            } else {
+              // If no linked Google account, create a new one
+              await db.account.create({
+                data: {
+                  userId: existingUser.id,
                   type: account.type,
                   provider: account.provider,
                   providerAccountId: account.providerAccountId,
@@ -75,12 +55,37 @@ const handler = NextAuth({
                   id_token: account.id_token,
                   session_state: account.session_state,
                 },
+              });
+            }
+          } else {
+            // If the user doesn't exist, create a new user
+            await db.user.create({
+              data: {
+                name: user.name,
+                email: user.email!,
+                accounts: {
+                  create: {
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    refresh_token: account.refresh_token,
+                    access_token: account.access_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                    session_state: account.session_state,
+                  },
+                },
               },
-            },
-          });
+            });
+          }
         }
+        return true;
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
       }
-      return true;
     },
     // Add session callback
     async session({ session, user }) {
