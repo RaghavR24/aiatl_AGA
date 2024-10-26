@@ -6,12 +6,9 @@ import OpenAI from "openai";
 import sharp from "sharp";
 import { Storage } from "@google-cloud/storage";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
 
-const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") global.prisma = prisma;
+const prisma = new PrismaClient();
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
