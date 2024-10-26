@@ -62,6 +62,7 @@ export const imageRouter = createTRPCRouter({
             text: extractedText,
           },
         });
+        // await sendToDjango(userId, extractedText);
         return imageToText;
       } catch (error) {
         console.error("Error during image-to-text processing:", error);
@@ -105,3 +106,30 @@ async function uploadToTemporaryUrl(base64Image: string): Promise<string> {
     // console.log(url)
     return url;
   }
+
+
+  async function sendToDjango(userId: string, text: string) {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/upload-text/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          transcription: text,
+        }),
+      });
+  
+      if (!response.ok) {
+        console.error("Failed to send transcription to Django:", await response.json());
+        throw new Error("Failed to send transcription to Django");
+      }
+  
+      console.log("Successfully sent transcription to Django");
+    } catch (error) {
+      console.error("Error sending transcription to Django:", error);
+      throw new Error("Error sending transcription to Django");
+    }
+  }
+  

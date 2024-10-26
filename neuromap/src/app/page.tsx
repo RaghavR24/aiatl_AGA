@@ -224,6 +224,9 @@ export default function VoiceNotes() {
                 setProcessingStatus("Saving speech to text...")
                 await saveSpeechToText.mutateAsync({ text: result.text })
 
+                setProcessingStatus("Updating Mind Map with new thoughts...")
+                await upsertTranscript.mutateAsync({ text: result.text })
+
                 setProcessingStatus("Extracting and saving todos...")
                 await extractAndSaveTodos.mutateAsync({ text: result.text })
 
@@ -520,22 +523,22 @@ export default function VoiceNotes() {
           </Button>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full bg-white bg-opacity-50">
+          <TabsList className="flex flex-wrap w-full bg-white bg-opacity-50">
             {[
               { value: "voice", icon: Mic, label: "Voice" },
               { value: "image", icon: CameraIcon, label: "Image" },
-              { value: "mindmap", icon: BrainCircuit, label: "Mindmap", shortLabel: "Map" },
+              { value: "mindmap", icon: BrainCircuit, label: "Map" },
               { value: "todo", icon: CheckSquare, label: "Todo" },
               { value: "mindchat", icon: MessageSquare, label: "Chat" },
-            ].map(({ value, icon: Icon, label, shortLabel }) => (
+            ].map(({ value, icon: Icon, label }, index) => (
               <TabsTrigger
                 key={value}
                 value={value}
-                className="flex-1 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-black"
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-black
+                            ${index < 3 ? 'w-1/3' : 'w-1/2'}`}
               >
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">{label}</span>
-                <span className="sm:hidden">{shortLabel ?? label}</span>
+                <span>{label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -586,8 +589,17 @@ export default function VoiceNotes() {
             </div>
           </TabsContent>
           <TabsContent value="mindmap" className="p-6">
-            <div className="bg-white bg-opacity-50 rounded-xl p-4 h-64 flex items-center justify-center">
-              <p className="text-lg text-gray-600">Mindmap feature coming soon!</p>
+            <div className="bg-white bg-opacity-50 rounded-xl p-4 h-[calc(100vh-300px)] overflow-hidden relative">
+              {mindMapData ? (
+                <MindMapGraph nodes={mindMapData.nodes} edges={mindMapData.edges} />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center space-y-4 animate-fade-in">
+                    <Loader2 className="w-12 h-12 animate-spin text-casca-blue mx-auto" />
+                    <p className="text-lg text-gray-600">Loading mindmap data...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="todo" className="p-4 sm:p-6">
@@ -603,7 +615,7 @@ export default function VoiceNotes() {
                 <RadioGroup
                   value={newTaskPriority.toString()}
                   onValueChange={(value) => setNewTaskPriority(parseInt(value))}
-                  className="flex items-center space-x-2 bg-white p-1 rounded-md border border-gray-300"
+                  className="flex justify-center items-center space-x-2 bg-white p-1 rounded-md border border-gray-300"
                 >
                   {priorityOptions.map((option) => (
                     <div key={option.value} className="flex items-center">
@@ -666,7 +678,7 @@ export default function VoiceNotes() {
                   </div>
                 )}
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 -mt-4"> {/* Added negative top margin */}
                 <Input
                   type="text"
                   placeholder="Chat with your memories..."

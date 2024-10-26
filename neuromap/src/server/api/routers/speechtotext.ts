@@ -19,6 +19,8 @@ export const speechRouter = createTRPCRouter({
           },
         });
 
+        //await sendToDjango(userId, text);
+
         return speechToText;
       } catch (error) {
         console.error('Error saving speech to text:', error);
@@ -26,3 +28,29 @@ export const speechRouter = createTRPCRouter({
       }
     }),
 });
+
+// Function to send transcription to Django endpoint
+async function sendToDjango(userId: string, text: string) {
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/upload-text/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        transcription: text,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send transcription to Django:", await response.json());
+      throw new Error("Failed to send transcription to Django");
+    }
+
+    console.log("Successfully sent transcription to Django");
+  } catch (error) {
+    console.error("Error sending transcription to Django:", error);
+    throw new Error("Error sending transcription to Django");
+  }
+}
