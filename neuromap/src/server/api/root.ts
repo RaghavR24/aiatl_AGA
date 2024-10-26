@@ -5,6 +5,7 @@ import { getTodoRouter } from './routers/todoRouter'
 import { transcriptionRouter } from './routers/transcribeAudio'
 import { mindchatRouter } from "./routers/mindchat";
 import { pineconeRouter } from "~/server/api/routers/pinecone";
+import { imageRouter } from './routers/imagetotext'
 import {mindMapRouter} from "~/server/api/routers/mindMap";
 
 /**
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   transcription: transcriptionRouter,
   mindchat: mindchatRouter,
   pinecone: pineconeRouter,
+  image: imageRouter,
   mindMap: mindMapRouter
 });
 

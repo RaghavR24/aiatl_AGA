@@ -3,7 +3,7 @@
 import React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession, signIn, signOut } from "next-auth/react"
-import { Mic, StopCircle, BrainCircuit, CheckSquare, Plus, ChevronDown, ChevronRight, Trash2, LogIn, LogOut, Loader2, Flag, MessageSquare, Send, Check } from 'lucide-react'
+import { Mic, StopCircle, BrainCircuit, CheckSquare, Plus, ChevronDown, ChevronRight, Trash2, LogIn, LogOut, Loader2, Flag, MessageSquare, Send, Check, CameraIcon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -93,6 +93,12 @@ export default function VoiceNotes() {
   const [microphonePermission, setMicrophonePermission] = useState<PermissionState | null>(null);
   const [microphoneError, setMicrophoneError] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewSrc, setPreviewSrc] = useState<string | ArrayBuffer | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const saveSpeechToText = api.speech.saveSpeechToText.useMutation()
   const extractAndSaveTodos = api.todo.extractAndSaveTodos.useMutation()
@@ -103,6 +109,18 @@ export default function VoiceNotes() {
   const transcribeAudio = api.transcription.transcribeAudio.useMutation()
   const mindchatMutation = api.mindchat.chat.useMutation()
   const upsertTranscript = api.pinecone.upsertTranscript.useMutation()
+  const saveImageToText = api.image.saveImageToText.useMutation({
+    onSuccess: (data) => {
+      setExtractedText(data.text);
+      setUploadSuccess(true);
+      setError('');
+    },
+    onError: (error) => {
+      console.error('OCR Error:', error);
+      setError('Failed to extract text from the image.');
+      setUploadSuccess(false);
+    },
+  });
 
   const userId = session?.user?.id ?? ''
 
@@ -431,6 +449,47 @@ export default function VoiceNotes() {
     }
   }, [currentMessage, chatMessages, mindchatMutation]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadSuccess(false);
+      setError('');
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewSrc(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert('Please select an image file.');
+      return;
+    }
+  
+    setIsProcessingImage(true);
+    setUploadSuccess(false);
+    setError('');
+  
+    try {
+      const buffer = await selectedFile.arrayBuffer();
+      const base64Image = Buffer.from(buffer).toString('base64');
+  
+      await saveImageToText.mutateAsync({ image: base64Image });
+  
+      setUploadSuccess(true);
+    } catch (error) {
+      console.error('Error during OCR process:', error);
+      setError('An error occurred while processing the image. Please try again.');
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -461,7 +520,7 @@ export default function VoiceNotes() {
           </Button>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white bg-opacity-50">
+          <TabsList className="flex flex-wrap w-full bg-white bg-opacity-50">
             <TabsTrigger value="voice" className="data-[state=active]:bg-white data-[state=active]:text-black">
               <Mic className="w-5 h-5 mr-2" />
               Voice Input
@@ -477,6 +536,10 @@ export default function VoiceNotes() {
             <TabsTrigger value="mindchat" className="data-[state=active]:bg-white data-[state=active]:text-black">
               <MessageSquare className="w-5 h-5 mr-2" />
               Mindchat
+            </TabsTrigger>
+            <TabsTrigger value="image" className="flex-1 min-w-[100px] text-center data-[state=active]:bg-white data-[state=active]:text-black">
+              <CameraIcon className="w-5 h-5 mr-2" />
+              Image Input
             </TabsTrigger>
           </TabsList>
           <TabsContent value="voice" className="p-6">
@@ -619,6 +682,58 @@ export default function VoiceNotes() {
                   <Send className="w-5 h-5" />
                 </Button>
               </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="image" className="p-6">
+            <div className="space-y-4 flex flex-col items-center">
+              <form onSubmit={handleImageUpload} className="flex flex-col items-center space-y-4 w-full max-w-md bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-700">Upload Image</h2>
+                <label className="flex flex-col items-center cursor-pointer">
+                  <CameraIcon className="w-10 h-10 text-gray-500 mb-2 hover:text-gray-700 transition-colors" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                  />
+                </label>
+                {previewSrc && (
+                  <div className="w-full max-w-xs overflow-hidden rounded-lg border border-gray-300 shadow">
+                    <img
+                      src={previewSrc as string}
+                      alt="Selected Preview"
+                      className="object-contain w-full"
+                    />
+                  </div>
+                )}
+                <Button 
+                  type="submit" 
+                  disabled={isProcessingImage || !selectedFile} 
+                  className="w-full h-12 flex items-center justify-center rounded-lg bg-white text-black border border-black hover:bg-gray-100 transition-colors"
+                >
+                  {isProcessingImage ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 mr-2" />
+                      Extract Text
+                    </>
+                  )}
+                </Button>
+              </form>
+              {uploadSuccess && (
+                <div className="text-green-600 font-semibold mt-2">
+                  Image processed successfully!
+                </div>
+              )}
+              {error && (
+                <div className="text-red-600 font-semibold mt-2">
+                  Error: {error}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
