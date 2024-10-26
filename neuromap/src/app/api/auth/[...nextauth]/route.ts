@@ -15,8 +15,8 @@ declare module "next-auth" {
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   adapter: PrismaAdapter(db),
@@ -98,6 +98,6 @@ const handler = NextAuth({
       return session;
     },
   },
-});
+} as const);
 
 export { handler as GET, handler as POST };
