@@ -39,8 +39,8 @@
     "next": "^14.2.4",
     "next-auth": "^4.24.10",
     "openai": "^4.68.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-force-graph": "^1.44.6",
     "react-force-graph-3d": "^1.24.5",
     "server-only": "^0.0.1",
@@ -69,5 +69,11 @@
   "ct3aMetadata": {
     "initVersion": "7.37.0"
   },
-  "packageManager": "npm@10.2.4"
+  "packageManager": "npm@10.2.4",
+  "overrides": {
+    "@reach/dialog": {
+      "react": "^18.0.0",
+      "react-dom": "^18.0.0"
+    }
+  }
 }
