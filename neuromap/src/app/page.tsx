@@ -165,7 +165,7 @@ export default function VoiceNotes() {
 
   useEffect(() => {
     if (getUserTodos.data) {
-      setTasks(getUserTodos.data.map(todo => ({
+      setTasks(getUserTodos.data.map((todo: Task) => ({
         ...todo,
         isExpanded: false,
         subtasks: todo.subtasks.map(subtask => ({

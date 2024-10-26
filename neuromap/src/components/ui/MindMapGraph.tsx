@@ -117,7 +117,7 @@ const MindMapGraph: React.FC<MindMapGraphProps> = ({ nodes, edges }) => {
         onBackgroundClick={() => setSelectedNode(null)}
         enableNodeDrag={false}
         showNavInfo={false}
-        nodeLabel={(node: Node) => `<span style="color: black;">${node.name}</span>`}
+        nodeLabel={(node: any) => `<span style="color: black;">${node.name}</span>`}
         backgroundColor="#ffffff"
         width={800}
         height={600}
