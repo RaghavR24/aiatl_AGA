@@ -21,14 +21,14 @@ const extractTopics = (text: string) => {
   return topics.slice(0, 5) // Return up to 5 topics
 }
 
-// Update the Task type to match the structure from the server
+// Update the Task type
 type Task = {
   id: string;
   text: string;
   priority: number;
   subtasks: Task[];
   isExpanded: boolean;
-  isSubtask?: boolean; // Add this to match the server response
+  isSubtask?: boolean;
 };
 
 
@@ -165,7 +165,7 @@ export default function VoiceNotes() {
 
   useEffect(() => {
     if (getUserTodos.data) {
-      setTasks(getUserTodos.data.map((todo: Task) => ({
+      setTasks(getUserTodos.data.map((todo) => ({
         ...todo,
         isExpanded: false,
         subtasks: todo.subtasks.map(subtask => ({
