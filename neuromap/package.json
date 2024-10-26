@@ -46,7 +46,9 @@
     "server-only": "^0.0.1",
     "superjson": "^2.2.1",
     "tailwind-merge": "^2.5.4",
-    "zod": "^3.23.3"
+    "d3": "^7.8.5",
+    "zod": "^3.23.3",
+    "@reach/dialog": "^0.18.0"
   },
   "devDependencies": {
     "@types/eslint": "^8.56.10",
