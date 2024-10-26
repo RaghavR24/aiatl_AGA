@@ -13,6 +13,7 @@ import { api } from "@/trpc/react"
 import { cn } from "@/lib/utils"
 import MindMapGraph from "@/components/ui/MindMapGraph"
 import MindMapModal from "@/components/ui/MindMapModal"
+import { SelectItem } from "@/components/ui/select"
 
 // Simulated AI function to extract topics from text
 const extractTopics = (text: string) => {
@@ -96,7 +97,7 @@ export default function VoiceNotes() {
 
   const [mindMapData, setMindMapData] = useState<{ nodes: any[]; edges: any[] } | null>(null);
   const getMindMap = api.mindMap.getMindMap.useQuery(
-    { userId: session?.user?.id },
+    { userId: session?.user?.id ?? '' },
     { enabled: !!session?.user?.id }
   );
 
