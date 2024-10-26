@@ -31,35 +31,6 @@ type Task = {
   isSubtask?: boolean;
 };
 
-// Add these type definitions at the top of the file
-type SpeechRecognition = {
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionEvent = {
-  results: SpeechRecognitionResultList;
-};
-
-type SpeechRecognitionResultList = {
-  [index: number]: SpeechRecognitionResult;
-  length: number;
-};
-
-type SpeechRecognitionResult = {
-  [index: number]: SpeechRecognitionAlternative;
-  isFinal: boolean;
-  length: number;
-};
-
-type SpeechRecognitionAlternative = {
-  transcript: string;
-  confidence: number;
-};
-
 // Add this new component for a custom SelectItem
 const PrioritySelectItem = React.forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof SelectItem> & { icon: React.ReactNode }>(
   ({ className, children, icon, ...props }, ref) => {
@@ -104,7 +75,6 @@ export default function VoiceNotes() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTask, setNewTask] = useState('')
   const [newTaskPriority, setNewTaskPriority] = useState(3)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const [isUpsertingText, setIsUpsertingText] = useState(false)
   const [upsertSuccess, setUpsertSuccess] = useState(false)
   const [isExtractingTodos, setIsExtractingTodos] = useState(false)
@@ -180,24 +150,6 @@ export default function VoiceNotes() {
       setMicrophonePermission('denied');
     }
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognitionConstructor() as SpeechRecognition;
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .filter((result): result is SpeechRecognitionAlternative => result !== undefined)
-          .map((result) => result.transcript)
-          .join('');
-        setTranscript(transcript);
-      };
-    }
-  }, []);
 
   useEffect(() => {
     if (getMindMap.data) {
