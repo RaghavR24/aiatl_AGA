@@ -97,6 +97,10 @@ export const transcriptionRouter = createTRPCRouter({
         // Create and check the file stream
         const fileStream = createReadStream(fileToTranscribe);
         console.log("File stream created");
+        console.log("File stream:", fileStream);
+
+        console.log("Type of fileStream:", typeof fileStream);
+        console.log("Is fileStream instanceof Readable:", fileStream instanceof Readable);
 
         if (fileStream instanceof Readable) {
           console.log("File stream is readable");
