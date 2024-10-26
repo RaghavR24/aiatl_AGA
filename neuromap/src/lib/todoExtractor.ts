@@ -37,9 +37,15 @@ export async function extractTodos(text: string): Promise<TodoItem[]> {
   const result = await chain.call({ text });
 
   try {
+    if (typeof result.text !== 'string') {
+      throw new Error('Unexpected result type');
+    }
     // Remove markdown code block formatting
     const cleanedResult = result.text.replace(/```json\n|\n```/g, '').trim();
-    const todos = JSON.parse(cleanedResult);
+    const todos = JSON.parse(cleanedResult) as TodoItem[];
+    if (!Array.isArray(todos)) {
+      throw new Error('Parsed result is not an array');
+    }
     return processTodos(todos);
   } catch (error) {
     console.error("Error parsing LLM output:", error);

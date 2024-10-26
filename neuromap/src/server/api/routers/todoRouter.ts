@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { extractTodos, TodoItem } from '@/lib/todoExtractor';
+import { extractTodos } from '@/lib/todoExtractor';
+import type { TodoItem } from '@/lib/todoExtractor';
+import type { PrismaClient } from '@prisma/client';
 
 export const getTodoRouter = createTRPCRouter({
   getUserTodos: protectedProcedure
@@ -104,8 +106,8 @@ export const getTodoRouter = createTRPCRouter({
     }),
 });
 
-async function saveTodosToDatabase(todos: TodoItem[], userId: string, db: any) {
-  const savedTodos = [];
+async function saveTodosToDatabase(todos: TodoItem[], userId: string, db: PrismaClient): Promise<TodoItem[]> {
+  const savedTodos: TodoItem[] = [];
 
   for (const todo of todos) {
     const savedTodo = await db.todo.create({
@@ -127,7 +129,10 @@ async function saveTodosToDatabase(todos: TodoItem[], userId: string, db: any) {
         subtasks: true,
       },
     });
-    savedTodos.push(savedTodo);
+    savedTodos.push({
+      ...savedTodo,
+      subtasks: [] // Add an empty array for subtasks
+    } as TodoItem);
   }
 
   return savedTodos;

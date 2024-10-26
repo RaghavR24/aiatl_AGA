@@ -5,6 +5,9 @@ import { observable } from '@trpc/server/observable';
 import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
+// Add a type for the agent response
+type AgentResponse = string; // Adjust this type if the actual response is more complex
+
 async function getRelevantContext(userId: string, input: string) {
   const pinecone = new Pinecone({
     apiKey: process.env.PINECONE_API_KEY!,
@@ -49,12 +52,11 @@ export const mindchatRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       const { message, history } = input;
 
-      // Retrieve relevant context from Pinecone
       const relevantContext = await getRelevantContext(userId, message);
 
       const agent = await createMindchatAgent(userId);
       
-      const response = await agent.call({
+      const response: AgentResponse = await agent.call({
         input: message,
         chat_history: history.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
         relevant_context: relevantContext
@@ -75,26 +77,32 @@ export const mindchatRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       const { message, history } = input;
 
-      // Retrieve relevant context from Pinecone
       const relevantContext = await getRelevantContext(userId, message);
 
       const agent = await createMindchatAgent(userId);
 
       return observable<string>((emit) => {
-        (async () => {
-          const response = await agent.call({
-            input: message,
-            chat_history: history.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
-            relevant_context: relevantContext
-          });
+        void (async () => {
+          try {
+            const response: AgentResponse = await agent.call({
+              input: message,
+              chat_history: history.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
+              relevant_context: relevantContext
+            });
 
-          // Simulate streaming by splitting the response into words
-          const words = response.split(' ');
-          for (const word of words) {
-            emit.next(word + ' ');
-            await new Promise(resolve => setTimeout(resolve, 50)); // Delay between words
+            if (typeof response === 'string') {
+              const words = response.split(' ');
+              for (const word of words) {
+                emit.next(word + ' ');
+                await new Promise(resolve => setTimeout(resolve, 50));
+              }
+            } else {
+              throw new Error('Unexpected response type from agent');
+            }
+            emit.complete();
+          } catch (error) {
+            emit.error(error instanceof Error ? error : new Error('Unknown error occurred'));
           }
-          emit.complete();
         })();
 
         return () => {

@@ -1,7 +1,16 @@
-import NextAuth from "next-auth";
+import NextAuth, { DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { db } from "~/server/db";
+
+// Extend the built-in session types
+declare module "next-auth" {
+  interface Session extends DefaultSession {
+    user: {
+      id: string;
+    } & DefaultSession["user"]
+  }
+}
 
 const handler = NextAuth({
   providers: [
@@ -81,7 +90,7 @@ const handler = NextAuth({
       }
       return true;
     },
-    // Add session callback
+    // Update session callback
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;

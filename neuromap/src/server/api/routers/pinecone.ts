@@ -23,7 +23,7 @@ export const pineconeRouter = createTRPCRouter({
         console.log("OpenAI client initialized");
 
         // Updated splitIntoChunks function
-        function splitIntoChunks(text: string, chunkSize: number = 256, overlap: number = 40): string[] {
+        function splitIntoChunks(text: string, chunkSize = 256, overlap = 40): string[] {
           console.log(`splitIntoChunks called with text length: ${text.length}, chunkSize: ${chunkSize}, overlap: ${overlap}`);
           
           const minChunkSize = 40; // Minimum chunk size to avoid embedding errors
@@ -37,7 +37,7 @@ export const pineconeRouter = createTRPCRouter({
 
           while (startIndex < text.length) {
             console.log(`Current startIndex: ${startIndex}`);
-            let endIndex = Math.min(startIndex + chunkSize, text.length);
+            const endIndex = Math.min(startIndex + chunkSize, text.length);
             console.log(`Calculated endIndex: ${endIndex}`);
             
             // If the remaining text is smaller than chunkSize, make it the last chunk

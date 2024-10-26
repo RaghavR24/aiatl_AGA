@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/trpc/react"
 import { cn } from "@/lib/utils"
 import MindMapGraph from "@/components/ui/MindMapGraph"
-import MindMapModal from "@/components/ui/MindMapModal"
 import { SelectItem } from "@/components/ui/select"
+import { NodeType } from '@prisma/client';
 
 // Simulated AI function to extract topics from text
 const extractTopics = (text: string) => {
@@ -31,6 +31,34 @@ type Task = {
   isSubtask?: boolean;
 };
 
+// Add these type definitions at the top of the file
+type SpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionEvent = {
+  results: SpeechRecognitionResultList;
+};
+
+type SpeechRecognitionResultList = {
+  [index: number]: SpeechRecognitionResult;
+  length: number;
+};
+
+type SpeechRecognitionResult = {
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+  length: number;
+};
+
+type SpeechRecognitionAlternative = {
+  transcript: string;
+  confidence: number;
+};
 
 // Add this new component for a custom SelectItem
 const PrioritySelectItem = React.forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof SelectItem> & { icon: React.ReactNode }>(
@@ -54,6 +82,19 @@ const PrioritySelectItem = React.forwardRef<HTMLDivElement, React.ComponentProps
 )
 PrioritySelectItem.displayName = "PrioritySelectItem"
 
+// Add these interfaces at the top of your file
+interface Node {
+  id: string;
+  name: string;
+  type: NodeType;
+  infoPoints: string[];
+}
+
+interface Edge {
+  sourceId: string;
+  targetId: string;
+}
+
 export default function VoiceNotes() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('voice')
@@ -63,7 +104,7 @@ export default function VoiceNotes() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTask, setNewTask] = useState('')
   const [newTaskPriority, setNewTaskPriority] = useState(3)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const [isUpsertingText, setIsUpsertingText] = useState(false)
   const [upsertSuccess, setUpsertSuccess] = useState(false)
   const [isExtractingTodos, setIsExtractingTodos] = useState(false)
@@ -93,9 +134,9 @@ export default function VoiceNotes() {
   const mindchatMutation = api.mindchat.chat.useMutation()
   const upsertTranscript = api.pinecone.upsertTranscript.useMutation()
 
-  const userId = session?.user?.id || ''
+  const userId = session?.user?.id ?? ''
 
-  const [mindMapData, setMindMapData] = useState<{ nodes: any[]; edges: any[] } | null>(null);
+  const [mindMapData, setMindMapData] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const getMindMap = api.mindMap.getMindMap.useQuery(
     { userId: session?.user?.id ?? '' },
     { enabled: !!session?.user?.id }
@@ -108,7 +149,7 @@ export default function VoiceNotes() {
   ]
 
   useEffect(() => {
-    checkMicrophonePermission();
+    checkMicrophonePermission().catch(console.error);
   }, []);
 
   const checkMicrophonePermission = async () => {
@@ -142,24 +183,29 @@ export default function VoiceNotes() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = true
-      recognitionRef.current.interimResults = true
+      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognitionConstructor() as SpeechRecognition;
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = Array.from(event.results)
-          .map((result: any) => result[0])
+          .map((result) => result[0])
+          .filter((result): result is SpeechRecognitionAlternative => result !== undefined)
           .map((result) => result.transcript)
-          .join('')
-        setTranscript(transcript)
-      }
+          .join('');
+        setTranscript(transcript);
+      };
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (getMindMap.data) {
-      setMindMapData(getMindMap.data);
+      const mappedData = {
+        nodes: getMindMap.data.nodes as Node[],
+        edges: getMindMap.data.edges as Edge[]
+      };
+      setMindMapData(mappedData);
     }
   }, [getMindMap.data]);
 
@@ -527,13 +573,9 @@ export default function VoiceNotes() {
             </div>
           </TabsContent>
           <TabsContent value="mindmap" className="p-6">
-            <div className="bg-white bg-opacity-50 rounded-xl p-4 h-150">
-              {mindMapData ? (
-                <MindMapModal nodes={mindMapData.nodes} edges={mindMapData.edges} />
-              ) : (
-                <div>Loading mind map...</div>
-              )}
-          </div>
+            <div className="bg-white bg-opacity-50 rounded-xl p-4 h-64 flex items-center justify-center">
+              <p className="text-lg text-gray-600">Mindmap feature coming soon!</p>
+            </div>
           </TabsContent>
           <TabsContent value="todo" className="p-6">
             <div className="space-y-4">

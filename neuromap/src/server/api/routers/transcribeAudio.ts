@@ -32,7 +32,7 @@ export const transcriptionRouter = createTRPCRouter({
         // Create a temporary file using os.tmpdir()
         const tempDir = os.tmpdir();
         const tempFilePath = path.join(tempDir, `audio_${Date.now()}.webm`);
-        const buffer = Buffer.from(base64Data as string, 'base64');
+        const buffer = Buffer.from(base64Data!, 'base64');
         
         await fs.promises.writeFile(tempFilePath, buffer);
 
