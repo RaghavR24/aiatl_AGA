@@ -23,7 +23,7 @@ const handler = NextAuth({
           });
 
           if (existingUser) {
-            // Check if the user has a linked Google account
+            // User exists, update or create the Google account
             const linkedAccount = existingUser.accounts.find(
               (acc: { provider: string }) => acc.provider === "google"
             );
@@ -58,6 +58,7 @@ const handler = NextAuth({
                 },
               });
             }
+            return true; // Allow sign in for existing users
           } else {
             // If the user doesn't exist, create a new user
             await db.user.create({
@@ -80,9 +81,10 @@ const handler = NextAuth({
                 },
               },
             });
+            return true; // Allow sign in for new users
           }
         }
-        return true;
+        return false; // Deny sign in for non-Google providers
       } catch (error) {
         console.error("Error in signIn callback:", error);
         return false;
