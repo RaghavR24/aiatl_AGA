@@ -261,7 +261,7 @@ export default function VoiceNotes() {
                 await upsertTranscript.mutateAsync({ text: result.text })
 
                 // Refresh the todo list
-                getUserTodos.refetch()
+                void getUserTodos.refetch()
 
                 // Extract topics for mindmap
                 const extractedTopics = extractTopics(result.text)
@@ -321,7 +321,8 @@ export default function VoiceNotes() {
 
         setNewTask('');
         setNewTaskPriority(3);
-        getUserTodos.refetch(); // Refetch todos after adding a new task
+        // Use void operator to explicitly ignore the promise
+        void getUserTodos.refetch();
       } catch (error) {
         console.error('Error adding task:', error);
       } finally {
@@ -342,7 +343,7 @@ export default function VoiceNotes() {
   const deleteTodoMutation = api.todo.deleteTodo.useMutation({
     onSuccess: () => {
       // Refetch todos after successful deletion
-      getUserTodos.refetch();
+      void getUserTodos.refetch();
     },
   });
 
@@ -377,7 +378,7 @@ export default function VoiceNotes() {
     }
   };
 
-  const renderTask = (task: Task, level: number = 0, parentId: string | null = null) => (
+  const renderTask = (task: Task, level = 0, parentId: string | null = null) => (
     <li
       key={task.id}
       className={cn(
