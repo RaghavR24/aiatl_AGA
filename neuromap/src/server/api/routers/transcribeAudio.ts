@@ -6,6 +6,8 @@ import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
 import util from 'util';
+import { createReadStream } from 'fs';
+import { Readable } from 'stream';
 
 const execPromise = util.promisify(exec);
 
@@ -38,6 +40,10 @@ export const transcriptionRouter = createTRPCRouter({
         let fileExtension = '.webm';
         if (input.mimeType?.includes('audio/mp4')) {
           fileExtension = '.m4a';
+        } else if (input.mimeType?.includes('audio/mpeg')) {
+          fileExtension = '.mp3';
+        } else if (input.mimeType?.includes('audio/wav')) {
+          fileExtension = '.wav';
         }
 
         // Create a temporary file using os.tmpdir()
@@ -49,24 +55,55 @@ export const transcriptionRouter = createTRPCRouter({
 
         let fileToTranscribe = tempFilePath;
 
-        // Convert M4A to WAV if necessary
-        if (fileExtension === '.m4a') {
-          const wavFilePath = tempFilePath.replace('.m4a', '.wav');
+        // Convert to WAV if the format is not directly supported
+        if (!['wav', 'mp3', 'm4a'].includes(fileExtension.slice(1))) {
+          const wavFilePath = tempFilePath.replace(fileExtension, '.wav');
           await execPromise(`ffmpeg -i ${tempFilePath} ${wavFilePath}`);
           fileToTranscribe = wavFilePath;
         }
 
+        console.log("MIME type:", input.mimeType);
+        console.log("File extension:", fileExtension);
+        console.log("Temp file path:", tempFilePath);
+        console.log("File to transcribe:", fileToTranscribe);
+
+        // Log file information
+        const fileStats = await fs.promises.stat(fileToTranscribe);
+        console.log("File size:", fileStats.size, "bytes");
+
+        // Check file type using file command
+        try {
+          const { stdout } = await execPromise(`file -b --mime-type ${fileToTranscribe}`);
+          console.log("Detected file type:", stdout.trim());
+        } catch (error) {
+          console.error("Error detecting file type:", error);
+        }
+
+        // Create and check the file stream
+        const fileStream = createReadStream(fileToTranscribe);
+        console.log("File stream created");
+
+        if (fileStream instanceof Readable) {
+          console.log("File stream is readable");
+        } else {
+          console.log("File stream is not readable");
+        }
+
         try {
           const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(fileToTranscribe),
+            file: fileStream,
             model: "whisper-1",
           });
 
+          console.log("Transcription successful");
           return { text: transcription.text };
+        } catch (error) {
+          console.error("Error during transcription:", error);
+          throw error;
         } finally {
           // Clean up the temporary files
           await fs.promises.unlink(tempFilePath);
-          if (fileExtension === '.m4a') {
+          if (fileToTranscribe !== tempFilePath) {
             await fs.promises.unlink(fileToTranscribe);
           }
         }
