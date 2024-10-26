@@ -535,7 +535,7 @@ export default function VoiceNotes() {
               >
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">{label}</span>
-                <span className="sm:hidden">{shortLabel || label}</span>
+                <span className="sm:hidden">{shortLabel ?? label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
