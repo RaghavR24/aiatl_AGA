@@ -32,10 +32,10 @@ export async function createMindchatAgent(userId: string) {
   const chain = new LLMChain({ llm: model, prompt });
 
   return {
-    call: async ({ input, chat_history, relevant_context }: { input: string; chat_history: string; relevant_context: string }) => {
+    call: async ({ input, chat_history, relevant_context }: { input: string; chat_history: string; relevant_context: string }): Promise<string> => {
       console.log("Relevant context:", relevant_context);
       const response = await chain.call({ input, chat_history, relevant_context });
-      return response.text;
+      return response.text as string;
     }
   };
 }

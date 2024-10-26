@@ -6,7 +6,10 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
 // Add a type for the agent response
-type AgentResponse = string; // Adjust this type if the actual response is more complex
+// type AgentResponse = {
+//   output: string;
+//   // Add other properties if they exist in the actual response
+// };
 
 async function getRelevantContext(userId: string, input: string) {
   const pinecone = new Pinecone({
@@ -56,13 +59,13 @@ export const mindchatRouter = createTRPCRouter({
 
       const agent = await createMindchatAgent(userId);
       
-      const response: AgentResponse = await agent.call({
+      const response: string = await agent.call({
         input: message,
         chat_history: history.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
         relevant_context: relevantContext
       });
 
-      return response;
+      return response; // Return the string directly
     }),
 
   streamChat: protectedProcedure
@@ -84,12 +87,13 @@ export const mindchatRouter = createTRPCRouter({
       return observable<string>((emit) => {
         void (async () => {
           try {
-            const response: AgentResponse = await agent.call({
+            const response = await agent.call({
               input: message,
               chat_history: history.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
               relevant_context: relevantContext
             });
 
+            // Type guard to ensure response is a string
             if (typeof response === 'string') {
               const words = response.split(' ');
               for (const word of words) {

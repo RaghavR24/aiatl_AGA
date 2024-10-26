@@ -1,8 +1,19 @@
 import React from 'react';
 
+type Node = {
+  id: string;
+  // Add other node properties as needed
+};
+
+type Edge = {
+  source: string;
+  target: string;
+  // Add other edge properties as needed
+};
+
 type MindMapGraphProps = {
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
 };
 
 const MindMapGraph: React.FC<MindMapGraphProps> = ({ nodes, edges }) => {
