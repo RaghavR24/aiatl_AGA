@@ -510,37 +510,34 @@ export default function VoiceNotes() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-8 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4 sm:p-8 flex items-center justify-center">
       <div className="w-full max-w-4xl bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-3xl shadow-xl overflow-hidden">
         <div className="p-4 flex justify-between items-center bg-white bg-opacity-50">
-          <h1 className="text-xl font-bold">Welcome, {session?.user?.name}</h1>
-          <Button onClick={() => signOut()} variant="ghost">
-            <LogOut className="w-5 h-5 mr-2" />
-            Sign Out
+          <h1 className="text-lg sm:text-xl font-bold">Welcome, {session?.user?.name}</h1>
+          <Button onClick={() => signOut()} variant="ghost" size="sm">
+            <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+            <span className="hidden sm:inline">Sign Out</span>
           </Button>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex flex-wrap w-full bg-white bg-opacity-50">
-            <TabsTrigger value="voice" className="data-[state=active]:bg-white data-[state=active]:text-black">
-              <Mic className="w-5 h-5 mr-2" />
-              Voice Input
-            </TabsTrigger>
-            <TabsTrigger value="mindmap" className="data-[state=active]:bg-white data-[state=active]:text-black">
-              <BrainCircuit className="w-5 h-5 mr-2" />
-              Mindmap
-            </TabsTrigger>
-            <TabsTrigger value="todo" className="data-[state=active]:bg-white data-[state=active]:text-black">
-              <CheckSquare className="w-5 h-5 mr-2" />
-              Todo List
-            </TabsTrigger>
-            <TabsTrigger value="mindchat" className="data-[state=active]:bg-white data-[state=active]:text-black">
-              <MessageSquare className="w-5 h-5 mr-2" />
-              Mindchat
-            </TabsTrigger>
-            <TabsTrigger value="image" className="flex-1 min-w-[100px] text-center data-[state=active]:bg-white data-[state=active]:text-black">
-              <CameraIcon className="w-5 h-5 mr-2" />
-              Image Input
-            </TabsTrigger>
+          <TabsList className="flex w-full bg-white bg-opacity-50">
+            {[
+              { value: "voice", icon: Mic, label: "Voice" },
+              { value: "image", icon: CameraIcon, label: "Image" },
+              { value: "mindmap", icon: BrainCircuit, label: "Mindmap", shortLabel: "Map" },
+              { value: "todo", icon: CheckSquare, label: "Todo" },
+              { value: "mindchat", icon: MessageSquare, label: "Chat" },
+            ].map(({ value, icon: Icon, label, shortLabel }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="flex-1 py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-black"
+              >
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel || label}</span>
+              </TabsTrigger>
+            ))}
           </TabsList>
           <TabsContent value="voice" className="p-6">
             <div className="space-y-4 flex flex-col items-center justify-center h-64">
@@ -593,9 +590,9 @@ export default function VoiceNotes() {
               <p className="text-lg text-gray-600">Mindmap feature coming soon!</p>
             </div>
           </TabsContent>
-          <TabsContent value="todo" className="p-6">
+          <TabsContent value="todo" className="p-4 sm:p-6">
             <div className="space-y-4">
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <Input
                   type="text"
                   placeholder="Add a new task"
@@ -609,7 +606,7 @@ export default function VoiceNotes() {
                   className="flex items-center space-x-2 bg-white p-1 rounded-md border border-gray-300"
                 >
                   {priorityOptions.map((option) => (
-                    <div key={option.value} className="flex items-center space-x-1">
+                    <div key={option.value} className="flex items-center">
                       <RadioGroupItem
                         value={option.value}
                         id={`priority-${option.value}`}
@@ -628,7 +625,7 @@ export default function VoiceNotes() {
                     </div>
                   ))}
                 </RadioGroup>
-                <Button onClick={() => addTask()} disabled={isAddingTask}>
+                <Button onClick={() => addTask()} disabled={isAddingTask} className="w-full sm:w-auto">
                   {isAddingTask ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   ) : (
@@ -642,7 +639,7 @@ export default function VoiceNotes() {
                   <Loader2 className="w-8 h-8 animate-spin text-casca-blue" />
                 </div>
               ) : (
-                <ul className="space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-4">
+                <ul className="space-y-2 max-h-[calc(100vh-350px)] sm:max-h-[calc(100vh-250px)] overflow-y-auto pr-4">
                   {tasks
                     .sort((a, b) => a.priority - b.priority)
                     .map(task => renderTask(task))}
@@ -684,12 +681,12 @@ export default function VoiceNotes() {
               </div>
             </div>
           </TabsContent>
-          <TabsContent value="image" className="p-6">
-            <div className="space-y-4 flex flex-col items-center">
-              <form onSubmit={handleImageUpload} className="flex flex-col items-center space-y-4 w-full max-w-md bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-700">Upload Image</h2>
+          <TabsContent value="image" className="p-4 sm:p-6">
+            <div className="space-y-4 flex flex-col items-center justify-center min-h-[300px]">
+              <form onSubmit={handleImageUpload} className="flex flex-col items-center space-y-4 w-full max-w-md">
                 <label className="flex flex-col items-center cursor-pointer">
-                  <CameraIcon className="w-10 h-10 text-gray-500 mb-2 hover:text-gray-700 transition-colors" />
+                  <CameraIcon className="w-16 h-16 text-gray-500 mb-2 hover:text-gray-700 transition-colors" />
+                  <span className="text-sm text-gray-600">Click to upload an image</span>
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -709,7 +706,7 @@ export default function VoiceNotes() {
                 <Button 
                   type="submit" 
                   disabled={isProcessingImage || !selectedFile} 
-                  className="w-full h-12 flex items-center justify-center rounded-lg bg-white text-black border border-black hover:bg-gray-100 transition-colors"
+                  className="w-full max-w-xs h-12 flex items-center justify-center rounded-lg bg-white text-black border border-black hover:bg-gray-100 transition-colors"
                 >
                   {isProcessingImage ? (
                     <>
@@ -725,12 +722,12 @@ export default function VoiceNotes() {
                 </Button>
               </form>
               {uploadSuccess && (
-                <div className="text-green-600 font-semibold mt-2">
+                <div className="text-green-600 font-semibold mt-2 text-center">
                   Image processed successfully!
                 </div>
               )}
               {error && (
-                <div className="text-red-600 font-semibold mt-2">
+                <div className="text-red-600 font-semibold mt-2 text-center">
                   Error: {error}
                 </div>
               )}
