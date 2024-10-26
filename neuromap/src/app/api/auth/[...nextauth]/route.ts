@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import NextAuth, { DefaultSession, AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { db } from "~/server/db";
@@ -98,6 +98,6 @@ const handler = NextAuth({
       return session;
     },
   },
-} as const);
+} satisfies AuthOptions);
 
 export { handler as GET, handler as POST };
