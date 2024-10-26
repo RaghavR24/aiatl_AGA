@@ -24,16 +24,26 @@ export const transcriptionRouter = createTRPCRouter({
       try {
         console.log("Received input type:", typeof input);
         console.log("Audio data length:", input.audio.length);
+        console.log("MIME type:", input.mimeType);
+
+        // New logging for more detailed input information
+        const audioPrefix = input.audio.substring(0, 100); // Get the first 100 characters
+        console.log("Audio data prefix:", audioPrefix);
 
         if (!input.audio) {
           throw new Error("No audio data provided");
         }
 
-        // Remove the data URL prefix
+        // Attempt to parse the data URL
         const parts = input.audio.split(',');
-        if (parts.length !== 2) {
-          throw new Error("Invalid audio data format");
+        if (parts.length === 2) {
+          const [header, ] = parts;
+          console.log("Data URL header:", header);
+        } else {
+          console.log("Input is not in data URL format");
         }
+
+        // Remove the data URL prefix
         const base64Data = parts[1];
 
         // Determine file extension based on MIME type
@@ -55,11 +65,16 @@ export const transcriptionRouter = createTRPCRouter({
 
         let fileToTranscribe = tempFilePath;
 
-        // Convert to WAV if the format is not directly supported
+        // Attempt to convert to WAV if the format is not directly supported
         if (!['wav', 'mp3', 'm4a'].includes(fileExtension.slice(1))) {
-          const wavFilePath = tempFilePath.replace(fileExtension, '.wav');
-          await execPromise(`ffmpeg -i ${tempFilePath} ${wavFilePath}`);
-          fileToTranscribe = wavFilePath;
+          try {
+            const wavFilePath = tempFilePath.replace(fileExtension, '.wav');
+            await execPromise(`ffmpeg -i ${tempFilePath} ${wavFilePath}`);
+            fileToTranscribe = wavFilePath;
+          } catch (conversionError) {
+            console.warn("FFmpeg conversion failed, proceeding with original file:", conversionError);
+            // Continue with the original file if conversion fails
+          }
         }
 
         console.log("MIME type:", input.mimeType);
@@ -104,7 +119,11 @@ export const transcriptionRouter = createTRPCRouter({
           // Clean up the temporary files
           await fs.promises.unlink(tempFilePath);
           if (fileToTranscribe !== tempFilePath) {
-            await fs.promises.unlink(fileToTranscribe);
+            try {
+              await fs.promises.unlink(fileToTranscribe);
+            } catch (unlinkError) {
+              console.warn("Error deleting converted file:", unlinkError);
+            }
           }
         }
       } catch (error) {
