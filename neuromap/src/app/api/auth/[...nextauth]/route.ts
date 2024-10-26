@@ -1,18 +1,10 @@
-import NextAuth, { DefaultSession, AuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { db } from "~/server/db";
 
-// Extend the built-in session types
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user: {
-      id: string;
-    } & DefaultSession["user"]
-  }
-}
-
-const authOptions: AuthOptions = {
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -90,7 +82,7 @@ const authOptions: AuthOptions = {
       }
       return true;
     },
-    // Update session callback
+    // Add session callback
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
@@ -98,8 +90,6 @@ const authOptions: AuthOptions = {
       return session;
     },
   },
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };

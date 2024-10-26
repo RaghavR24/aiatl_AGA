@@ -29,6 +29,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   accounts      Account[]
+  ImageToText   ImageToText[]
   sessions      Session[]
   speechToTexts SpeechToText[]
   Todo          Todo[]
@@ -225,10 +226,10 @@ model django_session {
 
 model MindMapEdge {
   id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
   sourceId  String   @map("source_id")
   targetId  String   @map("target_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -236,20 +237,19 @@ model MindMapEdge {
 }
 
 model MindMapNode {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
+  id         String        @id @default(uuid())
   name       String
   type       NodeType
-  edgesTo    Json?    @map("edges_to")
-  infoPoints String[] @map("info_points")
   embedding  Float[]
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt      @map("updated_at")
-  parent_id  String?     @map("parent_id")
-  parent     MindMapNode? @relation("ParentChildRelation", fields: [parent_id], references: [id])
+  parent_id  String?       @map("parent_id")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  edgesTo    Json?         @map("edges_to")
+  infoPoints String[]      @map("info_points")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  userId     String        @map("user_id")
+  parent     MindMapNode?  @relation("ParentChildRelation", fields: [parent_id], references: [id])
   children   MindMapNode[] @relation("ParentChildRelation")
-
-  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@schema("public")
@@ -264,15 +264,26 @@ model Todo {
   isSubtask Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent    Todo?    @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
   subtasks  Todo[]   @relation("SubTasks")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([parentId])
   @@schema("prisma")
 }
 
+model ImageToText {
+  id        String   @id
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("prisma")
+}
 
 enum NodeType {
   main
