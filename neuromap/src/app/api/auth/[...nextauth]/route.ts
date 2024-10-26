@@ -9,23 +9,34 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      },
+      issuer: 'https://accounts.google.com'
     }),
   ],
   adapter: PrismaAdapter(db),
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user, account, profile }) {
+      console.log("SignIn callback started", { user, account, profile });
       try {
         if (account?.provider === "google") {
+          console.log("Google provider detected");
           const existingUser = await db.user.findUnique({
             where: { email: user.email! },
             include: { accounts: true },
           });
+          console.log("Existing user query result", existingUser);
 
           if (existingUser) {
             // User exists, update or create the Google account
             const linkedAccount = existingUser.accounts.find(
-              (acc: { provider: string }) => acc.provider === "google"
+              (acc) => acc.provider === "google"
             );
 
             if (linkedAccount) {
@@ -58,9 +69,8 @@ const handler = NextAuth({
                 },
               });
             }
-            return true; // Allow sign in for existing users
           } else {
-            // If the user doesn't exist, create a new user
+            // If the user doesn't exist, create a new user with the Google account
             await db.user.create({
               data: {
                 name: user.name,
@@ -81,9 +91,11 @@ const handler = NextAuth({
                 },
               },
             });
-            return true; // Allow sign in for new users
           }
+          console.log("SignIn callback completed successfully");
+          return true; // Allow sign in for both existing and new users
         }
+        console.log("Non-Google provider detected, sign-in denied");
         return false; // Deny sign in for non-Google providers
       } catch (error) {
         console.error("Error in signIn callback:", error);
