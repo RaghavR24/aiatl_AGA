@@ -1,0 +1,28 @@
+# Ignore virtual environments
+venv/
+env/
+.env/
+
+# Python bytecode files
+*.pyc
+__pycache__/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables or secrets
+.env
+.env.*
+
+# PyCharm project files
+.idea/
+
+# VSCode settings
+.vscode/
+
+# Ignore log files and database dumps
+*.log
+*.sqlite3
+
+# Ignore macOS system files
+.DS_Store

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Force-Directed Mind Map Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-force-3d@1.1.2/build/d3-force-3d.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Set up scene, camera, and renderer for Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 100;
+
+        // D3 Force-3D simulation
+        const forceSimulation = d3.forceSimulation()
+            .force("charge", d3.forceManyBody().strength(-50))
+            .force("link", d3.forceLink().id(d => d.id).distance(50))
+            .force("center", d3.forceCenter(0, 0, 0))  // X, Y, and Z centering
+            .force("x", d3.forceX())
+            .force("y", d3.forceY())
+            .force("z", d3.forceZ());  // Z-axis force, provided by d3-force-3d
+
+        // Load the mind map data from the backend
+        fetch('/api/get-mindmap/')
+            .then(response => response.json())
+            .then(data => {
+                const nodes = [];
+                const links = [];
+
+                // Recursively extract nodes and links from hierarchical data
+                function addNode(d, parent = null) {
+                    nodes.push({ id: d.name });
+
+                    if (parent) {
+                        links.push({ source: parent.name, target: d.name });
+                    }
+
+                    if (d.children) {
+                        d.children.forEach(child => addNode(child, d));
+                    }
+                }
+
+                addNode(data);
+
+                // Run force simulation
+                forceSimulation
+                    .nodes(nodes)
+                    .on("tick", () => {
+                        links.forEach(link => {
+                            const source = nodes.find(n => n.id === link.source);
+                            const target = nodes.find(n => n.id === link.target);
+                            drawLink(source, target);
+                        });
+
+                        nodes.forEach(drawNode);
+                    });
+
+                forceSimulation.force("link").links(links);
+
+                // Create material for nodes and links
+                const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0x007bff });
+                const linkMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+
+                // Create a sphere for each node
+                function drawNode(node) {
+                    if (!node.mesh) {
+                        const geometry = new THREE.SphereGeometry(2, 16, 16);
+                        node.mesh = new THREE.Mesh(geometry, nodeMaterial);
+                        scene.add(node.mesh);
+                    }
+
+                    // Update node position
+                    node.mesh.position.set(node.x, node.y, node.z);
+                }
+
+                // Create a line for each link
+                function drawLink(source, target) {
+                    if (!source || !target) return;
+
+                    if (!source.line || !target.line) {
+                        const geometry = new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(source.x, source.y, source.z),
+                            new THREE.Vector3(target.x, target.y, target.z)
+                        ]);
+
+                        const line = new THREE.Line(geometry, linkMaterial);
+                        scene.add(line);
+                    } else {
+                        source.line.geometry.attributes.position.setXYZ(0, source.x, source.y, source.z);
+                        source.line.geometry.attributes.position.setXYZ(1, target.x, target.y, target.z);
+                        source.line.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+
+                // Render the scene
+                function animate() {
+                    requestAnimationFrame(animate);
+                    renderer.render(scene, camera);
+                }
+
+                animate();
+            })
+            .catch(error => console.error('Error fetching mind map data:', error));
+
+        // Resize handler for responsive design
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+</body>
+</html>
