@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import OpenAI from "openai";
 import sharp from "sharp";
 import { Storage } from "@google-cloud/storage";
+import fs from 'fs';
 
 
 const prisma = new PrismaClient();
@@ -13,19 +14,27 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Add this new function to get GCP credentials
+// Updated getGCPCredentials function
 export const getGCPCredentials = () => {
-  // for Vercel, use environment variables
-  return process.env.GCP_PRIVATE_KEY
-    ? {
-        credentials: {
-          client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
-          private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        },
-        projectId: process.env.GCP_PROJECT_ID,
-      }
-    // for local development, use gcloud CLI
-    : {};
+  if (process.env.VERCEL) {
+    // For Vercel, use environment variables
+    return process.env.GCP_PRIVATE_KEY
+      ? {
+          credentials: {
+            client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
+          projectId: process.env.GCP_PROJECT_ID,
+        }
+      : {};
+  } else {
+    // For local development, use GOOGLE_APPLICATION_CREDENTIALS
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credPath && fs.existsSync(credPath)) {
+      return { keyFilename: credPath };
+    }
+    return {};
+  }
 };
 
 // Update the Storage initialization

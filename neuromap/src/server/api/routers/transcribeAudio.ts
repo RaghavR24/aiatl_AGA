@@ -1,32 +1,37 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { OpenAI } from "openai";
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
 import util from 'util';
-import { createReadStream } from 'fs';
 import { SpeechClient } from '@google-cloud/speech';
-import { Readable } from 'stream';
 import { protos } from '@google-cloud/speech';
 import { TRPCError } from "@trpc/server";
 
 const execPromise = util.promisify(exec);
 
-// Add this new function to get GCP credentials
+// Updated getGCPCredentials function
 export const getGCPCredentials = () => {
-  // for Vercel, use environment variables
-  return process.env.GCP_PRIVATE_KEY
-    ? {
-        credentials: {
-          client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
-          private_key: process.env.GCP_PRIVATE_KEY,
-        },
-        projectId: process.env.GCP_PROJECT_ID,
-      }
-    // for local development, use gcloud CLI
-    : {};
+  if (process.env.VERCEL) {
+    // For Vercel, use environment variables
+    return process.env.GCP_PRIVATE_KEY
+      ? {
+          credentials: {
+            client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
+          projectId: process.env.GCP_PROJECT_ID,
+        }
+      : {};
+  } else {
+    // For local development, use GOOGLE_APPLICATION_CREDENTIALS
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credPath && fs.existsSync(credPath)) {
+      return { keyFilename: path.resolve(credPath) };
+    }
+    return {};
+  }
 };
 
 // Update the SpeechClient initialization
@@ -117,10 +122,15 @@ export const transcriptionRouter = createTRPCRouter({
 
         // Transcription request to Google Speech-to-Text
         try {
-          if (!process.env.GCP_PRIVATE_KEY) {
+          if (process.env.VERCEL && !process.env.GCP_PRIVATE_KEY) {
             throw new TRPCError({
               code: 'INTERNAL_SERVER_ERROR',
               message: 'Google Cloud credentials are not configured',
+            });
+          } else if (!process.env.VERCEL && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'Google Cloud credentials file path is not set',
             });
           }
 
