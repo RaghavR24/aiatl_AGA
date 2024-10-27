@@ -66,6 +66,40 @@ interface Edge {
   targetId: string;
 }
 
+// Add this new function for image compression
+const compressImage = async (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 export default function VoiceNotes() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('voice')
@@ -452,24 +486,26 @@ export default function VoiceNotes() {
     }
   }, [currentMessage, chatMessages, mindchatMutation]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setUploadSuccess(false);
       setError('');
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewSrc(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedImage = await compressImage(file, 1024, 1024); // Compress to max 1024x1024
+        setPreviewSrc(compressedImage);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        setError('Failed to compress the image.');
+      }
     }
   };
 
   const handleImageUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile) {
+    if (!selectedFile || !previewSrc) {
       alert('Please select an image file.');
       return;
     }
@@ -479,10 +515,16 @@ export default function VoiceNotes() {
     setError('');
   
     try {
-      const buffer = await selectedFile.arrayBuffer();
-      const base64Image = Buffer.from(buffer).toString('base64');
+      if (typeof previewSrc !== 'string') {
+        throw new Error('Invalid image data');
+      }
+      const base64Image = previewSrc.split(',')[1]; // Extract base64 data
   
-      await saveImageToText.mutateAsync({ image: base64Image });
+      await saveImageToText.mutateAsync({ 
+        image: base64Image as string,
+        width: 1024,
+        height: 1024
+      });
   
       setUploadSuccess(true);
     } catch (error) {
