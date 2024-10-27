@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import ReactFlow, { Controls, Background, Node, Edge, useNodesState, useEdgesState } from 'react-flow-renderer';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
@@ -38,12 +38,44 @@ const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 dagreGraph.setGraph({ rankdir: 'TB', align: 'UL', nodesep: 15, ranksep: 150 });
 
+const nodeWidth = 150;
+const nodeHeight = 50;
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ rankdir: direction });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
+};
+
 const MindMap2D: React.FC<MindMap2DProps> = ({ nodes, edges }) => {
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Transform nodes and edges into React Flow format and calculate positions with dagre
-  const initialNodes: Node[] = nodes.map(node => ({
+  // Use useMemo to create initialNodes and initialEdges
+  const initialNodes: Node[] = useMemo(() => nodes.map(node => ({
     id: node.id,
     data: { label: node.name, type: node.type },
     position: { x: 0, y: 0 },
@@ -52,42 +84,26 @@ const MindMap2D: React.FC<MindMap2DProps> = ({ nodes, edges }) => {
       color: '#000',
       padding: 10,
       borderRadius: 5,
-      width: 150,
-      textAlign: 'center',
+      width: nodeWidth,
+      textAlign: 'center' as const,
     },
-  }));
+  })), [nodes]);
 
-  const initialEdges: Edge[] = edges.map(edge => ({
-    id: `${edge.sourceId}-${edge.targetId}`,
+  const initialEdges: Edge[] = useMemo(() => edges.map((edge, index) => ({
+    id: `${edge.sourceId}-${edge.targetId}-${index}`,
     source: edge.sourceId,
     target: edge.targetId,
     animated: true,
     style: { stroke: '#000' },
-  }));
+  })), [edges]);
 
-  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(initialNodes);
-  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(
+    () => getLayoutedElements(initialNodes, initialEdges),
+    [initialNodes, initialEdges]
+  );
 
-  // Arrange nodes with dagre to avoid overlap
-  useEffect(() => {
-    // Add nodes to dagre graph with initial data
-    flowNodes.forEach(node => dagreGraph.setNode(node.id, { width: 150, height: 50 }));
-    flowEdges.forEach(edge => dagreGraph.setEdge(edge.source, edge.target));
-
-    // Run dagre layout calculation
-    dagre.layout(dagreGraph);
-
-    const yOffset = -1400;
-    // Update node positions based on dagre's calculations
-    setFlowNodes(flowNodes.map(node => {
-      const nodeWithPosition = dagreGraph.node(node.id);
-      node.position = {
-        x: nodeWithPosition.x,
-        y: nodeWithPosition.y + yOffset,
-      };
-      return node;
-    }));
-  }, [flowNodes, flowEdges, setFlowNodes]);
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(layoutedNodes);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(layoutedEdges);
 
   // Handle node clicks to show popup for info points
   const onNodeClick = useCallback(
