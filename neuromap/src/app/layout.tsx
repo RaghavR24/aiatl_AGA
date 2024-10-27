@@ -1,5 +1,5 @@
 'use client'
-
+import { Analytics } from '@vercel/analytics/react';
 import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
@@ -17,6 +17,7 @@ export default function RootLayout({
         <SessionProvider>
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </SessionProvider>
+        <Analytics />
       </body>
     </html>
   );
