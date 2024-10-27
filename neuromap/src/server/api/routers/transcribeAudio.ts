@@ -9,13 +9,38 @@ import util from 'util';
 import { createReadStream } from 'fs';
 import { SpeechClient } from '@google-cloud/speech';
 import { Readable } from 'stream';
+import { protos } from '@google-cloud/speech';
+import { TRPCError } from "@trpc/server";
 
 const execPromise = util.promisify(exec);
 
-const speech = require('@google-cloud/speech');
-const speechClient = new SpeechClient(
+// Add this new function to get GCP credentials
+export const getGCPCredentials = () => {
+  // for Vercel, use environment variables
+  return process.env.GCP_PRIVATE_KEY
+    ? {
+        credentials: {
+          client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+          private_key: process.env.GCP_PRIVATE_KEY,
+        },
+        projectId: process.env.GCP_PROJECT_ID,
+      }
+    // for local development, use gcloud CLI
+    : {};
+};
 
-);
+// Update the SpeechClient initialization
+const speechClient = new SpeechClient(getGCPCredentials());
+
+const getAudioEncoding = (extension: string): protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding => {
+  switch (extension) {
+    case 'wav': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16;
+    case 'mp3': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;
+    case 'ogg': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.OGG_OPUS;
+    case 'flac': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.FLAC;
+    default: return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
+  }
+};
 
 export const transcriptionRouter = createTRPCRouter({
   transcribeAudio: protectedProcedure
@@ -84,27 +109,38 @@ export const transcriptionRouter = createTRPCRouter({
         const audioContent = fs.readFileSync(fileToTranscribe).toString('base64');
         const request = {
           config: {
-            encoding: currentExtension, // adjust encoding if necessary
-            // sampleRateHertz: 48000, // sample rate of your audio file
-            languageCode: 'en-US', // specify language
+            encoding: getAudioEncoding(currentExtension),
+            languageCode: 'en-US',
           },
           audio: { content: audioContent },
         };
 
         // Transcription request to Google Speech-to-Text
         try {
+          if (!process.env.GCP_PRIVATE_KEY) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'Google Cloud credentials are not configured',
+            });
+          }
+
           const [response] = await speechClient.recognize(request);
           const transcription = response.results
-            .map(result => result.alternatives[0].transcript)
-            .join('\n');
+            ?.map((result: protos.google.cloud.speech.v1.ISpeechRecognitionResult) => result.alternatives?.[0]?.transcript)
+            .join('\n') ?? '';
 
           console.log("Transcription successful", transcription);
-          console.log("HELLO HELLO HELLO")
           return { text: transcription };
         } catch (error) {
           console.error("Error during transcription:", error);
-          console.error("Error details:", JSON.stringify(error, null, 2));
-          throw error;
+          if (error instanceof Error) {
+            console.error("Error details:", error.message);
+          }
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to transcribe audio',
+            cause: error,
+          });
         } finally {
           // Clean up the temporary files
           await fs.promises.unlink(tempFilePath);
@@ -118,7 +154,14 @@ export const transcriptionRouter = createTRPCRouter({
         }
       } catch (error) {
         console.error("Error in transcribeAudio:", error);
-        throw error;
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected error occurred',
+          cause: error,
+        });
       }
     }),
   

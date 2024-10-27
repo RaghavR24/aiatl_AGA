@@ -13,13 +13,24 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const storage = new Storage({
-  projectId: process.env.GCP_PROJECT_ID,
-  credentials: {
-    client_email: process.env.GCP_CLIENT_EMAIL,
-    private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n') ?? '',
-  },
-});
+// Add this new function to get GCP credentials
+export const getGCPCredentials = () => {
+  // for Vercel, use environment variables
+  return process.env.GCP_PRIVATE_KEY
+    ? {
+        credentials: {
+          client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+          private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        },
+        projectId: process.env.GCP_PROJECT_ID,
+      }
+    // for local development, use gcloud CLI
+    : {};
+};
+
+// Update the Storage initialization
+const storage = new Storage(getGCPCredentials());
+
 const bucketName = process.env.GCP_BUCKET_NAME;
 if (!bucketName) {
   throw new Error("GCP_BUCKET_NAME is not defined in the environment variables");
