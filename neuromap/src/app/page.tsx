@@ -161,7 +161,10 @@ export default function VoiceNotes() {
   const [mindMapData, setMindMapData] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const getMindMap = api.mindMap.getMindMap.useQuery(
     { userId: session?.user?.id ?? '' },
-    { enabled: !!session?.user?.id }
+    { 
+      enabled: !!session?.user?.id,
+      refetchOnWindowFocus: false // Disable automatic refetch on window focus
+    }
   );
 
   const priorityOptions = [
@@ -535,6 +538,13 @@ export default function VoiceNotes() {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'mindmap') {
+      void getMindMap.refetch();
+    }
+  };
+
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -564,7 +574,7 @@ export default function VoiceNotes() {
             <span className="hidden sm:inline">Sign Out</span>
           </Button>
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex flex-wrap w-full bg-white bg-opacity-50">
             {[
               { value: "voice", icon: Mic, label: "Voice" },
@@ -632,16 +642,20 @@ export default function VoiceNotes() {
           </TabsContent>
           <TabsContent value="mindmap" className="p-6">
             <div className="bg-white bg-opacity-50 rounded-xl p-4 h-[calc(100vh-300px)] overflow-hidden relative">
-              {mindMapData ? (
-                <MindMapModal nodes={mindMapData.nodes} edges={mindMapData.edges} />
-              ) : (
+              {getMindMap.isLoading ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center space-y-4 animate-fade-in">
                     <Loader2 className="w-12 h-12 animate-spin text-casca-blue mx-auto" />
                     <p className="text-lg text-gray-600">Loading mindmap data...</p>
                   </div>
                 </div>
-              )}
+              ) : getMindMap.isError ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-lg text-red-600">Error loading mindmap data. Please try again.</p>
+                </div>
+              ) : mindMapData ? (
+                <MindMapModal nodes={mindMapData.nodes} edges={mindMapData.edges} />
+              ) : null}
             </div>
           </TabsContent>
           <TabsContent value="todo" className="p-4 sm:p-6">
