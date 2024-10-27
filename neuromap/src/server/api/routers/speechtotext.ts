@@ -19,7 +19,7 @@ export const speechRouter = createTRPCRouter({
           },
         });
 
-        //await sendToDjango(userId, text);
+        await sendToDjango(userId, text);
 
         return speechToText;
       } catch (error) {
@@ -32,7 +32,7 @@ export const speechRouter = createTRPCRouter({
 // Function to send transcription to Django endpoint
 async function sendToDjango(userId: string, text: string) {
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/upload-text/", {
+    const response = await fetch("https://mindmapp-app-761930939301.us-east4.run.app/api/upload-text/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
