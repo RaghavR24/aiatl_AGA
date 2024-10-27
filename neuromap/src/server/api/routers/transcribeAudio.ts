@@ -45,6 +45,7 @@ const getAudioEncoding = (extension: string): protos.google.cloud.speech.v1.Reco
     case 'flac': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.FLAC;
     case 'webm': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS;
     case 'm4a': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;  // Assuming m4a is similar to mp3
+    case 'aac': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;  // Assuming m4a is similar to mp3
     default: return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
   }
 };
