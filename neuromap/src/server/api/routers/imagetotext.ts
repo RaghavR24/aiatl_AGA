@@ -62,7 +62,7 @@ export const imageRouter = createTRPCRouter({
             text: extractedText,
           },
         });
-        // await sendToDjango(userId, extractedText);
+        await sendToDjango(userId, extractedText);
         return imageToText;
       } catch (error) {
         console.error("Error during image-to-text processing:", error);
@@ -110,7 +110,7 @@ async function uploadToTemporaryUrl(base64Image: string): Promise<string> {
 
   async function sendToDjango(userId: string, text: string) {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/upload-text/", {
+      const response = await fetch("https://mindmapp-app-761930939301.us-east4.run.app/api/upload-text/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
