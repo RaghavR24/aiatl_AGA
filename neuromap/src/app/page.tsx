@@ -501,7 +501,7 @@ export default function VoiceNotes() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-8 flex items-center justify-center">
         <div className="w-full max-w-md bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-3xl shadow-xl overflow-hidden p-8 text-center">
-          <h1 className="text-3xl font-bold mb-6">Welcome to VoiceNotes</h1>
+          <h1 className="text-3xl font-bold mb-6">Welcome to MindMap</h1>
           <p className="mb-6">Please sign in to access your personalized note-taking experience.</p>
           <Button onClick={() => signIn()} className="w-full">
             <LogIn className="w-5 h-5 mr-2" />
