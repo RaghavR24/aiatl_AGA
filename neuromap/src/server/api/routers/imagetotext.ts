@@ -12,9 +12,14 @@ const prisma = new PrismaClient();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 const storage = new Storage({
   projectId: process.env.GCP_PROJECT_ID,
-  keyFilename: process.env.GCP_KEY_FILE, // Path to your GCP credentials JSON file
+  // keyFilename: process.env.GCP_KEY_FILE, // Path to your GCP credentials JSON file
+  credentials: {
+    client_email: process.env.GCP_CLIENT_EMAIL,
+    private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'), // Ensure newline characters are handled
+  },
 });
 const bucketName = process.env.GCP_BUCKET_NAME;
 if (!bucketName) {
