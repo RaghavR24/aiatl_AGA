@@ -12,9 +12,14 @@ const prisma = new PrismaClient();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 const storage = new Storage({
   projectId: process.env.GCP_PROJECT_ID,
-  keyFilename: process.env.GCP_KEY_FILE, // Path to your GCP credentials JSON file
+  // keyFilename: process.env.GCP_KEY_FILE, // Path to your GCP credentials JSON file
+  credentials: {
+    client_email: process.env.GCP_CLIENT_EMAIL,
+    private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'), // Ensure newline characters are handled
+  },
 });
 const bucketName = process.env.GCP_BUCKET_NAME;
 if (!bucketName) {
@@ -62,7 +67,7 @@ export const imageRouter = createTRPCRouter({
             text: extractedText,
           },
         });
-        // await sendToDjango(userId, extractedText);
+        await sendToDjango(userId, extractedText);
         return imageToText;
       } catch (error) {
         console.error("Error during image-to-text processing:", error);
@@ -110,7 +115,7 @@ async function uploadToTemporaryUrl(base64Image: string): Promise<string> {
 
   async function sendToDjango(userId: string, text: string) {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/upload-text/", {
+      const response = await fetch("https://mindmapp-app-761930939301.us-east4.run.app/api/upload-text/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

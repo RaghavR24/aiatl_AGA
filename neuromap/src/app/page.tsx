@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { api } from "@/trpc/react"
 import { cn } from "@/lib/utils"
-import MindMapGraph from "@/components/ui/MindMapGraph"
+import MindMapModal from "@/components/ui/MindMapModal"
 import { SelectItem } from "@/components/ui/select"
 import { NodeType } from '@prisma/client';
 
@@ -591,7 +591,7 @@ export default function VoiceNotes() {
           <TabsContent value="mindmap" className="p-6">
             <div className="bg-white bg-opacity-50 rounded-xl p-4 h-[calc(100vh-300px)] overflow-hidden relative">
               {mindMapData ? (
-                <MindMapGraph nodes={mindMapData.nodes} edges={mindMapData.edges} />
+                <MindMapModal nodes={mindMapData.nodes} edges={mindMapData.edges} />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center space-y-4 animate-fade-in">
