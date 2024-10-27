@@ -43,6 +43,8 @@ const getAudioEncoding = (extension: string): protos.google.cloud.speech.v1.Reco
     case 'mp3': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;
     case 'ogg': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.OGG_OPUS;
     case 'flac': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.FLAC;
+    case 'webm': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS;
+    case 'm4a': return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;  // Assuming m4a is similar to mp3
     default: return protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
   }
 };
@@ -72,14 +74,21 @@ export const transcriptionRouter = createTRPCRouter({
         // Remove the data URL prefix
         const base64Data = parts[1];
 
-        // Determine file extension based on MIME type
+        // Determine file extension and encoding based on MIME type
         let fileExtension = '.webm';
+        let encoding = protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
         if (input.mimeType?.includes('audio/mp4')) {
           fileExtension = '.m4a';
+          encoding = protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;
         } else if (input.mimeType?.includes('audio/mpeg')) {
           fileExtension = '.mp3';
+          encoding = protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.MP3;
         } else if (input.mimeType?.includes('audio/wav')) {
           fileExtension = '.wav';
+          encoding = protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16;
+        } else if (input.mimeType?.includes('audio/webm')) {
+          fileExtension = '.webm';
+          encoding = protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS;
         }
 
         // Create a temporary file using os.tmpdir()
@@ -114,7 +123,8 @@ export const transcriptionRouter = createTRPCRouter({
         const audioContent = fs.readFileSync(fileToTranscribe).toString('base64');
         const request = {
           config: {
-            encoding: getAudioEncoding(currentExtension),
+            encoding: encoding,
+            sampleRateHertz: 16000,  // Add this line
             languageCode: 'en-US',
           },
           audio: { content: audioContent },
