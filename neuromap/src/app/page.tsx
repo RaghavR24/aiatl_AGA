@@ -521,7 +521,7 @@ export default function VoiceNotes() {
       const base64Image = previewSrc.split(',')[1]; // Extract base64 data
   
       await saveImageToText.mutateAsync({ 
-        image: base64Image as string,
+        image: base64Image!,
         width: 1024,
         height: 1024
       });
