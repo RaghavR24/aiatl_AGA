@@ -47,14 +47,16 @@ if (!bucketName) {
 
 export const imageRouter = createTRPCRouter({
   saveImageToText: protectedProcedure
-    .input(z.object({ image: z.string() })) // Accepts base64 string
+    .input(z.object({ 
+      image: z.string(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
-      const { image: base64Image } = input;
+      const { image: base64Image, width, height } = input;
       const userId = ctx.session.user.id;
       
-      // For this example, assume we have a function `uploadToTemporaryUrl` that handles
-      // uploading the base64 image to a file hosting service and returns a URL.
-      const imageUrl = await uploadToTemporaryUrl(base64Image);
+      const imageUrl = await uploadToTemporaryUrl(base64Image, width, height);
       try {
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
@@ -97,63 +99,61 @@ export const imageRouter = createTRPCRouter({
       }
     }),
 });
-// // Placeholder function for image upload; replace with actual image hosting code.
-// async function uploadToTemporaryUrl(base64Image: string): Promise<string> {
-//   // Implement the logic to upload the base64 image to a temporary URL and return the URL.
-//   return "https://your-temp-image-url.com/uploaded_image.png";
-// }
-async function uploadToTemporaryUrl(base64Image: string): Promise<string> {
-    // Convert base64 to a Buffer
-    const buffer = Buffer.from(base64Image, "base64");
-  
-    // Convert the image to JPG format
-    const jpgBuffer = await sharp(buffer).jpeg({ quality: 80 }).toBuffer();
-  
-    const fileName = `uploaded_images/${Date.now()}.jpg`;
-    if (!bucketName) {
-      throw new Error("Bucket name is not defined");
-    }
-    const bucket = storage.bucket(bucketName);
-    const file = bucket.file(fileName);
-  
-    // Upload the JPG buffer to Google Cloud Storage
-    await file.save(jpgBuffer, {
-      contentType: "image/jpeg",
+
+async function uploadToTemporaryUrl(base64Image: string, width?: number, height?: number): Promise<string> {
+  // Convert base64 to a Buffer
+  const buffer = Buffer.from(base64Image, "base64");
+
+  // Resize and compress the image
+  let sharpImage = sharp(buffer);
+  if (width && height) {
+    sharpImage = sharpImage.resize(width, height, { fit: 'inside' });
+  }
+  const jpgBuffer = await sharpImage.jpeg({ quality: 80 }).toBuffer();
+
+  const fileName = `uploaded_images/${Date.now()}.jpg`;
+  if (!bucketName) {
+    throw new Error("Bucket name is not defined");
+  }
+  const bucket = storage.bucket(bucketName);
+  const file = bucket.file(fileName);
+
+  // Upload the JPG buffer to Google Cloud Storage
+  await file.save(jpgBuffer, {
+    contentType: "image/jpeg",
+  });
+
+  // Generate a signed URL for temporary access
+  const [url] = await file.getSignedUrl({
+    action: "read",
+    expires: Date.now() + 60 * 60 * 1000, // URL expires in 1 hour
+  });
+  // console.log("Testing...")
+  // console.log(url)
+  return url;
+}
+
+async function sendToDjango(userId: string, text: string) {
+  try {
+    const response = await fetch("https://mindmapp-app-761930939301.us-east4.run.app/api/upload-text/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        transcription: text,
+      }),
     });
   
-    // Generate a signed URL for temporary access
-    const [url] = await file.getSignedUrl({
-      action: "read",
-      expires: Date.now() + 60 * 60 * 1000, // URL expires in 1 hour
-    });
-    // console.log("Testing...")
-    // console.log(url)
-    return url;
-  }
-
-
-  async function sendToDjango(userId: string, text: string) {
-    try {
-      const response = await fetch("https://mindmapp-app-761930939301.us-east4.run.app/api/upload-text/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          transcription: text,
-        }),
-      });
-  
-      if (!response.ok) {
-        console.error("Failed to send transcription to Django:", await response.json());
-        throw new Error("Failed to send transcription to Django");
-      }
-  
-      console.log("Successfully sent transcription to Django");
-    } catch (error) {
-      console.error("Error sending transcription to Django:", error);
-      throw new Error("Error sending transcription to Django");
+    if (!response.ok) {
+      console.error("Failed to send transcription to Django:", await response.json());
+      throw new Error("Failed to send transcription to Django");
     }
-  }
   
+    console.log("Successfully sent transcription to Django");
+  } catch (error) {
+    console.error("Error sending transcription to Django:", error);
+    throw new Error("Error sending transcription to Django");
+  }
+}
