@@ -179,7 +179,7 @@ const MindMapModal: React.FC<MindMapModalProps> = ({ nodes, edges }) => {
                           <ul className="ml-4 mt-1 space-y-1">
                             {result.connections.map((connection, i) => (
                               <li key={i} className="text-sm">
-                                Connected to: {connection.name}
+                                • {connection.name}
                                 <span className="ml-2 text-xs text-gray-500">
                                   ({connection.type === 'main' ? 'Main Topic' : 'Subtopic'})
                                 </span>
