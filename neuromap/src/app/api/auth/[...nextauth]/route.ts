@@ -1,7 +1,10 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { db } from "~/server/db";
+import { PrismaClient } from "@prisma/client";
+
+// Create a new PrismaClient instance
+const prisma = new PrismaClient();
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const handler = NextAuth({
@@ -19,7 +22,7 @@ const handler = NextAuth({
       issuer: 'https://accounts.google.com'
     }),
   ],
-  adapter: PrismaAdapter(db),
+  adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -27,7 +30,7 @@ const handler = NextAuth({
       try {
         if (account?.provider === "google") {
           console.log("Google provider detected");
-          const existingUser = await db.user.findUnique({
+          const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
             include: { accounts: true },
           });
@@ -41,7 +44,7 @@ const handler = NextAuth({
 
             if (linkedAccount) {
               // Update the existing Google account with new tokens
-              await db.account.update({
+              await prisma.account.update({
                 where: { id: linkedAccount.id },
                 data: {
                   access_token: account.access_token,
@@ -53,7 +56,7 @@ const handler = NextAuth({
               });
             } else {
               // If no linked Google account, create a new one
-              await db.account.create({
+              await prisma.account.create({
                 data: {
                   userId: existingUser.id,
                   type: account.type,
@@ -71,7 +74,7 @@ const handler = NextAuth({
             }
           } else {
             // If the user doesn't exist, create a new user with the Google account
-            await db.user.create({
+            await prisma.user.create({
               data: {
                 name: user.name,
                 email: user.email!,
