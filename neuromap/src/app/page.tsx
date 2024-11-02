@@ -303,11 +303,8 @@ export default function VoiceNotes() {
                 const result = await transcribeAudio.mutateAsync({ audio: base64Audio });
                 setTranscript(result.text)
 
-                setProcessingStatus("Saving speech to text...")
+                setProcessingStatus("Updating Mind Map...")
                 await saveSpeechToText.mutateAsync({ text: result.text })
-
-                setProcessingStatus("Updating Mind Map with new thoughts...")
-                await upsertTranscript.mutateAsync({ text: result.text })
 
                 setProcessingStatus("Extracting and saving todos...")
                 await extractAndSaveTodos.mutateAsync({ text: result.text })
