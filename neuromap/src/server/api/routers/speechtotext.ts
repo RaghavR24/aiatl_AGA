@@ -19,7 +19,9 @@ export const speechRouter = createTRPCRouter({
           },
         });
 
-        await sendToDjango(userId, text);
+        void sendToDjango(userId, text).catch(error => {
+          console.error('Background Django sync failed:', error);
+        });
 
         return speechToText;
       } catch (error) {
