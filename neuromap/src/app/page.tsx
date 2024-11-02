@@ -12,7 +12,13 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/trpc/react"
 import { cn } from "@/lib/utils"
 import MindMapModal from "@/components/ui/MindMapModal"
-import { SelectItem } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { NodeType } from '@prisma/client';
 
 // Simulated AI function to extract topics from text
@@ -168,10 +174,49 @@ export default function VoiceNotes() {
   );
 
   const priorityOptions = [
-    { value: "1", label: "High", color: "text-red-500" },
-    { value: "2", label: "Medium", color: "text-yellow-500" },
-    { value: "3", label: "Low", color: "text-green-500" },
-  ]
+    { value: "1", label: "1", color: "text-red-600" },
+    { value: "2", label: "2", color: "text-red-500" },
+    { value: "3", label: "3", color: "text-orange-500" },
+    { value: "4", label: "4", color: "text-orange-400" },
+    { value: "5", label: "5", color: "text-yellow-500" },
+    { value: "6", label: "6", color: "text-yellow-400" },
+    { value: "7", label: "7", color: "text-lime-500" },
+    { value: "8", label: "8", color: "text-green-400" },
+    { value: "9", label: "9", color: "text-green-500" },
+    { value: "10", label: "10", color: "text-green-600" },
+  ];
+
+  const getPriorityColor = (priority: number): string => {
+    switch (priority) {
+      case 1: return "border-red-600";
+      case 2: return "border-red-500";
+      case 3: return "border-orange-500";
+      case 4: return "border-orange-400";
+      case 5: return "border-yellow-500";
+      case 6: return "border-yellow-400";
+      case 7: return "border-lime-500";
+      case 8: return "border-green-400";
+      case 9: return "border-green-500";
+      case 10: return "border-green-600";
+      default: return "border-gray-400";
+    }
+  };
+
+  const getFlagColor = (priority: number): string => {
+    switch (priority) {
+      case 1: return "text-red-600";
+      case 2: return "text-red-500";
+      case 3: return "text-orange-500";
+      case 4: return "text-orange-400";
+      case 5: return "text-yellow-500";
+      case 6: return "text-yellow-400";
+      case 7: return "text-lime-500";
+      case 8: return "text-green-400";
+      case 9: return "text-green-500";
+      case 10: return "text-green-600";
+      default: return "text-gray-400";
+    }
+  };
 
   useEffect(() => {
     checkMicrophonePermission().catch(console.error);
@@ -394,8 +439,7 @@ export default function VoiceNotes() {
       className={cn(
         `bg-white rounded-xl p-4 mb-2 shadow-sm`,
         `border-l-4`,
-        task.priority === 1 ? "border-red-500" :
-        task.priority === 2 ? "border-yellow-500" : "border-green-500",
+        getPriorityColor(task.priority),
         level > 0 ? 'ml-6' : ''
       )}
     >
@@ -424,13 +468,7 @@ export default function VoiceNotes() {
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <Flag 
-            className={cn(
-              "w-4 h-4",
-              task.priority === 1 ? "text-red-500" : 
-              task.priority === 2 ? "text-yellow-500" : "text-green-500"
-            )}
-          />
+          <Flag className={cn("w-4 h-4", getFlagColor(task.priority))} />
           <Button 
             onClick={() => deleteTask(task.id, parentId)} 
             variant="ghost" 
@@ -668,31 +706,33 @@ export default function VoiceNotes() {
                   onChange={(e) => setNewTask(e.target.value)}
                   className="flex-grow"
                 />
-                <RadioGroup
+                <Select
                   value={newTaskPriority.toString()}
                   onValueChange={(value) => setNewTaskPriority(parseInt(value))}
-                  className="flex justify-center items-center space-x-2 bg-white p-1 rounded-md border border-gray-300"
                 >
-                  {priorityOptions.map((option) => (
-                    <div key={option.value} className="flex items-center">
-                      <RadioGroupItem
+                  <SelectTrigger className="w-[180px] bg-white">
+                    <SelectValue placeholder="Select priority">
+                      <div className="flex items-center space-x-2">
+                        <Flag className={getFlagColor(newTaskPriority)} />
+                        <span>Priority {newTaskPriority}</span>
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    {priorityOptions.map((option) => (
+                      <SelectItem 
+                        key={option.value} 
                         value={option.value}
-                        id={`priority-${option.value}`}
-                        className="sr-only"
-                      />
-                      <Label
-                        htmlFor={`priority-${option.value}`}
-                        className={cn(
-                          "flex items-center space-x-1 cursor-pointer rounded px-2 py-1",
-                          newTaskPriority.toString() === option.value ? "bg-gray-100" : ""
-                        )}
+                        className="hover:bg-gray-100"
                       >
-                        <Flag className={cn("w-4 h-4", option.color)} />
-                        <span className="text-sm">{option.label}</span>
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                        <div className="flex items-center space-x-2">
+                          <Flag className={option.color} />
+                          <span>Priority {option.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button onClick={() => addTask()} disabled={isAddingTask} className="w-full sm:w-auto">
                   {isAddingTask ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />

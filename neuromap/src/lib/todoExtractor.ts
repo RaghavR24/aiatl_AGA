@@ -11,7 +11,7 @@ export type TodoItem = {
 const TODO_EXTRACTOR_TEMPLATE = `
 Analyze the following text and extract any tasks, action items, or things the user needs to do later or be reminded of. Consider various formats and implicit tasks. Format the output as a JSON array of objects, where each object has the following properties:
 - text: The task description
-- priority: A number from 1 to 3, where 1 is high priority and 3 is low priority
+- priority: A number from 1 to 10, where 1 is high priority and 10 is low priority
 - subtasks: An array of subtasks, each following the same format as the main tasks
 
 Look for:
@@ -63,18 +63,24 @@ function processTodos(todos: TodoItem[]): TodoItem[] {
 }
 
 function inferPriority(text: string): number {
-  const lowPriorityKeywords = ['maybe', 'consider', 'might', 'could'];
-  const highPriorityKeywords = ['urgent', 'important', 'asap', 'critical'];
+  const urgentKeywords = ['urgent', 'critical', 'immediate', 'asap'];
+  const highKeywords = ['important', 'priority', 'crucial'];
+  const mediumKeywords = ['should', 'need to', 'required'];
+  const lowKeywords = ['maybe', 'consider', 'might', 'could', 'eventually'];
 
   text = text.toLowerCase();
 
-  if (highPriorityKeywords.some(keyword => text.includes(keyword))) {
-    return 1;
-  } else if (lowPriorityKeywords.some(keyword => text.includes(keyword))) {
-    return 3;
+  if (urgentKeywords.some(keyword => text.includes(keyword))) {
+    return Math.floor(Math.random() * 2) + 1; // Returns 1-2
+  } else if (highKeywords.some(keyword => text.includes(keyword))) {
+    return Math.floor(Math.random() * 2) + 3; // Returns 3-4
+  } else if (mediumKeywords.some(keyword => text.includes(keyword))) {
+    return Math.floor(Math.random() * 3) + 5; // Returns 5-7
+  } else if (lowKeywords.some(keyword => text.includes(keyword))) {
+    return Math.floor(Math.random() * 3) + 8; // Returns 8-10
   }
 
-  return 2;
+  return Math.floor(Math.random() * 4) + 4; // Returns 4-7 as default
 }
 
 // ... rest of the file ...
